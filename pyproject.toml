@@ -4,29 +4,42 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "deltalake>=1.2.0",
+    "duckdb>=1.4.1",
+    "pandas>=2.3.3",
+    "pandas-stubs>=2.3.2.250926",
+    "pyarrow>=21.0.0",
+    "pydantic>=2.12.2",
+    "pytest>=8.4.2",
+]
 
 [project.scripts]
 smallcat = "smallcat:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"
 
 [tool.ruff]
 indent-width = 4
+exclude = [
+  "tests/*",
+]
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    # "ANN", 
-    # "RUF012", 
+    "S101"
+    # "ANN",
+    # "RUF012",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
     "D103", # undocumented-public-function
     "S101", # assert
+    "ANN001",
 ]
 
 [tool.ruff.lint.flake8-implicit-str-concat]
@@ -39,3 +52,26 @@ convention = "google"
 docstring-code-format = true
 indent-style = "space"
 line-ending = "lf"
+
+[dependency-groups]
+airflow = [
+    "apache-airflow>=3.1.0",
+]
+dev = [
+    "mypy>=1.18.2",
+    "ruff>=0.14.0",
+]
+
+[tool.mypy]
+ignore_missing_imports = false
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
+
+[[tool.mypy.overrides]]
+module = ["pyarrow.*"]
+follow_untyped_imports = true

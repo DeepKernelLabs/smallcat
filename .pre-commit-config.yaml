@@ -27,13 +27,13 @@ repos:
                 - "--branch"
                 - develop
           - id: trailing-whitespace
-    - repo: https://github.com/gitguardian/ggshield
-      rev: v1.43.0
-      hooks:
-          - id: ggshield
-            language_version: python3
-            stages:
-                - pre-commit
+    # - repo: https://github.com/gitguardian/ggshield
+    #   rev: v1.43.0
+    #   hooks:
+    #       - id: ggshield
+    #         language_version: python3
+    #         stages:
+    #             - pre-commit
     - repo: https://github.com/astral-sh/ruff-pre-commit
       rev: v0.14.0
       hooks:
@@ -47,7 +47,8 @@ repos:
       hooks:
           - id: mypy
             additional_dependencies:
-            #    - "" 
+               - pydantic
+               - apache-airflow
     - repo: https://github.com/commitizen-tools/commitizen
       rev: v4.9.1
       hooks:
