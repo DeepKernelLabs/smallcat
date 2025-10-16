@@ -52,17 +52,18 @@ entries:
 ```python
 from smallcat import Catalog
 
-cat = Catalog.from_path("catalog/")
-print(cat.list())
+catalog = Catalog.from_path("catalog.yaml")
+catalog.save_pandas("foo", df)
+df2 = catalog.load_pandas("foo")
 ```
 
 ### With Airflow
 ```python
 from smallcat import Catalog
 
-cat = Catalog.from_airflow_variable("catalog/")
-print(cat.list())
+catalog = Catalog.from_airflow_variable("catalog/")
+df = catalog.load_pandas("bar")
 ```
 
 ## Docs
-Read more at (pending).
+Read more at [the official docs](https://deepkernellabs.github.io/smallcat/).

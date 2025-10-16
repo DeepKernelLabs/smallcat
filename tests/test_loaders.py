@@ -21,28 +21,6 @@ from smallcat.datasets.parquet_dataset import (
 )
 
 
-@pytest.fixture
-def example_df():
-    return pd.DataFrame(
-        {
-            "id": [1.0, 2.0, 3.0],
-            "name": ["Alice", "Bob", "Cara"],
-            "amount": [12.5, 7.0, 19.99],
-        },
-    )
-
-
-@pytest.fixture
-def another_example_df():
-    return pd.DataFrame(
-        {
-            "id": [4.0, 5.0, 6.0],
-            "name": ["John", "Chris", "Wendy"],
-            "amount": [2.5, 17.0, 39.99],
-        },
-    )
-
-
 @pytest.mark.parametrize(
     "save_options,load_options",
     [

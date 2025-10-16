@@ -5,6 +5,7 @@ sources and formats in data loading and saving. This module lets you build a
 catalog from a dictionary (which could be in an airflow variable).
 """
 
+import typing
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Literal
@@ -32,6 +33,9 @@ from smallcat.datasets.parquet_dataset import (
     ParquetSaveOptions,
 )
 
+if typing.TYPE_CHECKING:
+    import pandas as pd
+
 
 class EntryBase(BaseModel, ABC):
     """Base configuration shared by all catalog entries.
@@ -45,6 +49,7 @@ class EntryBase(BaseModel, ABC):
         ...,
         description="Airflow connection ID or dictionary representing a connection",
     )
+    location: str = Field(..., description="Relative location of data")
 
     def get_connection(self) -> dict | ConnectionProtocol:
         """Resolve and return the connection for this entry.
@@ -70,6 +75,40 @@ class EntryBase(BaseModel, ABC):
     def build_dataset(self) -> "BaseDataset":
         """Construct and return the concrete dataset for this entry."""
         raise NotImplementedError
+
+    def load_pandas(self) -> "pd.DataFrame":
+        """Load this entry's dataset into a pandas DataFrame.
+
+        This method builds the concrete dataset via :meth:`build_dataset` and
+        delegates to its ``load_pandas`` method using this entry's ``location``.
+        Any dataset-specific load options configured on the entry are respected.
+
+        Returns:
+            pd.DataFrame: The loaded tabular data.
+
+        Raises:
+            FileNotFoundError: If the target path/table at ``location`` does not exist.
+            ValueError: If the data cannot be parsed as tabular data.
+            Exception: Any other error raised by the underlying dataset implementation.
+        """
+        return self.build_dataset().load_pandas(self.location)
+
+    def save_pandas(self, df: "pd.DataFrame") -> None:
+        """Save a pandas DataFrame to this entry's dataset location.
+
+        This method builds the concrete dataset via :meth:`build_dataset` and
+        delegates to its ``save_pandas`` method using this entry's ``location``.
+        Any dataset-specific save options configured on the entry are respected.
+
+        Args:
+            df (pd.DataFrame): The DataFrame to persist.
+
+        Raises:
+            PermissionError: If the target cannot be written to.
+            ValueError: If the DataFrame is incompatible with the target format/options.
+            Exception: Any other error raised by the underlying dataset implementation.
+        """
+        self.build_dataset().save_pandas(self.location, df)
 
 
 class CSVEntry(EntryBase):
@@ -291,3 +330,42 @@ class Catalog(BaseModel):
         """
         entry = self._get_entry(key)
         return entry.build_dataset()
+
+    def load_pandas(self, key: str) -> "pd.DataFrame":
+        """Load a dataset from the catalog into a pandas DataFrame.
+
+        Resolves the catalog entry identified by ``key`` and delegates to
+        :meth:`EntryBase.load_pandas`. This is equivalent to:
+
+            ``self.entries[key].build_dataset().load_pandas(entry.location)``
+
+        Args:
+            key: The catalog entry name to load.
+
+        Returns:
+            pd.DataFrame: The loaded tabular data.
+
+        Raises:
+            KeyError: If ``key`` is not present in the catalog.
+            Exception: Any error propagated from the underlying dataset's loader.
+        """
+        entry = self._get_entry(key)
+        return entry.load_pandas()
+
+    def save_pandas(self, key: str, df: "pd.DataFrame") -> None:
+        """Save a pandas DataFrame to a dataset in the catalog.
+
+        Resolves the catalog entry identified by ``key`` and delegates to
+        :meth:`EntryBase.save_pandas`. This writes to the entry's configured
+        ``location`` with any format-specific save options applied.
+
+        Args:
+            key: The catalog entry name to write to.
+            df (pd.DataFrame): The DataFrame to persist.
+
+        Raises:
+            KeyError: If ``key`` is not present in the catalog.
+            Exception: Any error propagated from the underlying dataset's saver.
+        """
+        entry = self._get_entry(key)
+        entry.save_pandas(df)

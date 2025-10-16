@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 import pytest
 import yaml
 
@@ -13,12 +14,14 @@ def example_catalog(local_conn):
             'foo': {
                 'connection': local_conn,
                 'file_format': 'csv',
+                'location': 'foo.csv',
                 'load_options': {'header': True},
-                'save_options': None,
+                'save_options': {'header': True},
             },
             'bar': {
                 'connection': 'local_connection',
                 'file_format': 'excel',
+                'location': 'my_spreadsheets/bar.xlsx',
                 'load_options': {'header': True},
                 'save_options': None,
             }
@@ -26,13 +29,17 @@ def example_catalog(local_conn):
     }
 
 
-def test_catalog_dict(example_catalog):
+def test_catalog_dict(example_catalog, example_df):
     catalog = Catalog.from_dict(example_catalog)
     dataset = catalog.get_dataset('foo')
     assert isinstance(dataset, CSVDataset)
     with pytest.raises(KeyError):
         catalog.get_dataset('missing_key')
 
+    catalog.save_pandas('foo', example_df)
+    loaded_df = catalog.load_pandas('foo')
+
+    pd.testing.assert_frame_equal(example_df, loaded_df)
 
 
 def test_catalog_yaml(example_catalog, tmp_path):
