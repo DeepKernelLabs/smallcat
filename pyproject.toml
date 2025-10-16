@@ -12,6 +12,7 @@ dependencies = [
     "pyarrow>=21.0.0",
     "pydantic>=2.12.2",
     "pytest>=8.4.2",
+    "types-pyyaml>=6.0.12.20250915",
 ]
 
 [project.scripts]
@@ -30,16 +31,15 @@ exclude = [
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "S101"
-    # "ANN",
-    # "RUF012",
+    "S101",
+    "PLC0415",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
     "D103", # undocumented-public-function
     "S101", # assert
-    "ANN001",
+    "ANN001", # imports top of file
 ]
 
 [tool.ruff.lint.flake8-implicit-str-concat]

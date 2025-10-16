@@ -49,6 +49,7 @@ repos:
             additional_dependencies:
                - pydantic
                - apache-airflow
+               - types-PyYAML
     - repo: https://github.com/commitizen-tools/commitizen
       rev: v4.9.1
       hooks:
