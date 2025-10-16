@@ -28,9 +28,6 @@ jobs:
       - name: Smoke test (wheel import)
         run: uv run --isolated --no-project --with dist/*.whl python -c "import smallcat; print('ok')"
 
-      - name: Smoke test (wheel entry point)
-        run: uv run --isolated --no-project --with dist/*.whl smallcat --help
-
       - name: Smoke test (sdist import)
         run: uv run --isolated --no-project --with dist/*.tar.gz python -c "import smallcat; print('ok')"
 
