@@ -66,8 +66,11 @@ nav:
   - Get Started:
     - About: index.md
     # - Changelog: changelog.md
+  - API reference:
+    - Catalog: api/catalog.md
+    - Datasets: api/datasets.md
   # - Modules:
-  #   - Apps:
+    # - Apps:
   #     - About Us:
   #       - Apps: apps/about_us/apps.md
   #       - Factories: apps/about_us/factories.md
