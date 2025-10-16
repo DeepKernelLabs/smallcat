@@ -27,14 +27,13 @@ Note:
 from __future__ import annotations
 
 import typing
+from collections.abc import Mapping  # noqa: TC003
 
 from pydantic import BaseModel, Field
 
 from smallcat.datasets.base_dataset import BaseDataset
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Mapping
-
     import pyarrow as pa
 
 
