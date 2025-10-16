@@ -14,6 +14,11 @@ dependencies = [
     "pytest>=8.4.2",
     "types-pyyaml>=6.0.12.20250915",
 ]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.13",
+]
 
 [project.scripts]
 smallcat = "smallcat:main"
