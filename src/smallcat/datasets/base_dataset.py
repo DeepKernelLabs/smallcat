@@ -36,12 +36,12 @@ from smallcat.connections import ConnectionLike, ConnectionProtocol
 from smallcat.path_utils import norm_join_uri, to_relative_posix_path
 
 try:
-    from airflow.hooks.base import BaseHook  # type: ignore[attr-defined]
+    from airflow.sdk.bases.hook import BaseHook  # type: ignore[attr-defined]
 except ImportError:
     try:
-        from airflow.sdk.bases.hook import BaseHook  # type: ignore[attr-defined]
+        from airflow.hooks.base import BaseHook  # type: ignore[attr-defined,no-redef]
     except ImportError:
-        BaseHook = None  # type: ignore[assignment]
+        BaseHook = None  # type: ignore[assignment,misc]
 
 L = TypeVar("L", bound=BaseModel)  # Load options model
 S = TypeVar("S", bound=BaseModel)  # Save options model

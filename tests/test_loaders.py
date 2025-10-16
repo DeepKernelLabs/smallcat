@@ -58,8 +58,8 @@ def test_csv_dataset(example_df, local_conn, save_options, load_options):
     saver = CSVDataset(local_conn, save_options=save_options)
     saver.save_pandas(file_name, example_df)
 
-    loader = CSVDataset(local_conn, load_options=load_options)
-    loaded_df = loader.load_pandas(file_name)
+    dataset = CSVDataset(local_conn, load_options=load_options)
+    loaded_df = dataset.load_pandas(file_name)
 
     pd.testing.assert_frame_equal(example_df, loaded_df)
 
@@ -85,8 +85,8 @@ def test_excel_dataset(example_df, local_conn, save_options, load_options):
     saver = ExcelDataset(local_conn, save_options=save_options)
     saver.save_pandas(file_name, example_df)
 
-    loader = ExcelDataset(local_conn, load_options=load_options)
-    loaded_df = loader.load_pandas(file_name)
+    dataset = ExcelDataset(local_conn, load_options=load_options)
+    loaded_df = dataset.load_pandas(file_name)
 
     pd.testing.assert_frame_equal(example_df, loaded_df)
 
@@ -121,8 +121,8 @@ def test_parquet_dataset(
     saver.save_pandas(file_name, example_df)
     saver.save_pandas(another_file_name, another_example_df)
 
-    loader = ParquetDataset(local_conn, load_options=load_options)
-    loaded_df = loader.load_pandas("foo/**/*.parquet")
+    dataset = ParquetDataset(local_conn, load_options=load_options)
+    loaded_df = dataset.load_pandas("foo/**/*.parquet")
 
     hive_partitioning = load_options and load_options.hive_partitioning
     validation_df = pd.concat(
@@ -156,7 +156,7 @@ def test_delta_table_dataset(example_df, local_conn, save_options, load_options)
     saver = DeltaTableDataset(local_conn, save_options=save_options)
     saver.save_pandas(table_path, example_df)
 
-    loader = DeltaTableDataset(local_conn, load_options=load_options)
-    loaded_df = loader.load_pandas(table_path)
+    dataset = DeltaTableDataset(local_conn, load_options=load_options)
+    loaded_df = dataset.load_pandas(table_path)
 
     pd.testing.assert_frame_equal(example_df, loaded_df)
