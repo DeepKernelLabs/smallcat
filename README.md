@@ -21,10 +21,46 @@ pip install smallcat
 ```
 
 ## Quickstart
+### Create Catalog
+
+Local catalogs can be kept in YAML files.
+
+```yaml
+entries:
+    foo:
+        file_format: csv
+        connection:
+            conn_type: fs
+            extra:
+                base_path: /tmp/smallcat-example/
+        load_options:
+            header: true
+    bar:
+        file_format: parquet
+        connection:
+            conn_type: google_cloud_platform
+            extra:
+                bucket: my-bucket
+        save_options:
+            partition_by:
+                - year
+                - month
+```
+
+### Standalone
+
 ```python
 from smallcat import Catalog
 
 cat = Catalog.from_path("catalog/")
+print(cat.list())
+```
+
+### With Airflow
+```python
+from smallcat import Catalog
+
+cat = Catalog.from_airflow_variable("catalog/")
 print(cat.list())
 ```
 
