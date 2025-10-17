@@ -4,8 +4,7 @@ on:
   push:
     branches:
       ## Main should be disabled until the Python integration branch is ready to be merged.
-      # - main
-      - feature/initial-implementation
+      - main
 
 permissions:
   contents: write
