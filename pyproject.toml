@@ -34,7 +34,7 @@ source = "vcs"
 [tool.hatch.build.targets.wheel]
 packages = ["src/smallcat"]
 include = [
-  "smallcat/py.typed",
+  "src/smallcat/py.typed",
 ]
 
 [tool.hatch.build.targets.sdist]
