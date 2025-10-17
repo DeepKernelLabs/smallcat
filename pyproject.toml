@@ -32,14 +32,13 @@ build-backend = "hatchling.build"
 source = "vcs"
 
 [tool.hatch.build.targets.wheel]
+packages = ["src/smallcat"]
 include = [
   "smallcat/py.typed",
 ]
 
 [tool.hatch.build.targets.sdist]
-include = [
-  "smallcat/py.typed",
-]
+include = ["src/smallcat", "README.md", "pyproject.toml", "LICENSE"]
 
 [tool.ruff]
 indent-width = 4
