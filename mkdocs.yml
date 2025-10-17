@@ -66,6 +66,9 @@ nav:
   - Get Started:
     - About: index.md
     # - Changelog: changelog.md
+  - Examples:
+    - Standalone: examples/standalone.md
+    - Airflow: examples/airflow.md
   - API reference:
     - Catalog: api/catalog.md
     - Datasets: api/datasets.md
