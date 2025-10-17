@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from airflow.sdk import Variable
 from pydantic import BaseModel, Field
 
 from smallcat.connections import ConnectionProtocol
@@ -279,6 +278,11 @@ class Catalog(BaseModel):
             KeyError: If the Airflow Variable does not exist.
             pydantic.ValidationError: If the JSON payload is invalid for the model.
         """
+        try:
+            from airflow.sdk import Variable
+        except ImportError:
+            from airflow.models import Variable  # type: ignore[attr-defined,no-redef] # noqa: I001
+
         try:
             dictionary_entries = Variable.get(variable_id, deserialize_json=True)
         except ImportError as e:
