@@ -33,6 +33,7 @@ entries:
             conn_type: fs
             extra:
                 base_path: /tmp/smallcat-example/
+        location: foo.csv
         load_options:
             header: true
     bar:
@@ -41,6 +42,7 @@ entries:
             conn_type: google_cloud_platform
             extra:
                 bucket: my-bucket
+        location: bar.csv
         save_options:
             partition_by:
                 - year
