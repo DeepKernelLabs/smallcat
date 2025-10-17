@@ -13,7 +13,7 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, Field
 
-from smallcat.connections import ConnectionProtocol
+from smallcat.connections import ConnectionProtocol, SupportedConnectionSchemas
 from smallcat.datasets.base_dataset import BaseDataset
 from smallcat.datasets.csv_dataset import CSVDataset, CSVLoadOptions, CSVSaveOptions
 from smallcat.datasets.delta_table_dataset import (
@@ -44,7 +44,7 @@ class EntryBase(BaseModel, ABC):
             the connection configuration (e.g., credentials, file path, etc.).
     """
 
-    connection: str | dict = Field(
+    connection: str | dict | SupportedConnectionSchemas = Field(
         ...,
         description="Airflow connection ID or dictionary representing a connection",
     )
@@ -68,6 +68,8 @@ class EntryBase(BaseModel, ABC):
             except ImportError:
                 from airflow.hooks.base import BaseHook  # type: ignore[attr-defined,no-redef] # noqa: I001
             return BaseHook.get_connection(conn_id=self.connection)
+        if isinstance(self.connection, SupportedConnectionSchemas):
+            return self.connection.model_dump()
         return self.connection
 
     @abstractmethod

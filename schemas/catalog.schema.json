@@ -11,6 +11,12 @@
             {
               "additionalProperties": true,
               "type": "object"
+            },
+            {
+              "$ref": "#/$defs/LocalFsConnectionSchema"
+            },
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionSchema"
             }
           ],
           "description": "Airflow connection ID or dictionary representing a connection",
@@ -189,6 +195,12 @@
             {
               "additionalProperties": true,
               "type": "object"
+            },
+            {
+              "$ref": "#/$defs/LocalFsConnectionSchema"
+            },
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionSchema"
             }
           ],
           "description": "Airflow connection ID or dictionary representing a connection",
@@ -336,6 +348,12 @@
             {
               "additionalProperties": true,
               "type": "object"
+            },
+            {
+              "$ref": "#/$defs/LocalFsConnectionSchema"
+            },
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionSchema"
             }
           ],
           "description": "Airflow connection ID or dictionary representing a connection",
@@ -480,6 +498,224 @@
       "title": "ExcelSaveOptions",
       "type": "object"
     },
+    "GoogleCloudPlatformConnectionExtraSchema": {
+      "description": "Extra options for a Google Cloud Storage\u2013style connection.\n\nExactly one of the key sources may be provided, depending on how\ncredentials are supplied.\n\nAttributes:\n    keyfile_dict: Service account credentials as a mapping (already-parsed\n        JSON). Useful when credentials are injected as structured data.\n    keyfile: Service account credentials as a raw JSON string.\n    key_path: Filesystem path to a service account key file accessible at\n        runtime.",
+      "properties": {
+        "keyfile_dict": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Service account credentials as a mapping (parsed JSON). Use when credentials are injected as structured data.",
+          "title": "Keyfile Dict"
+        },
+        "keyfile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Service account credentials as a raw JSON string. Mutually exclusive with 'keyfile_dict' and 'key_path'.",
+          "title": "Keyfile"
+        },
+        "key_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Path to a service account key file on the local or worker filesystem. Mutually exclusive with 'keyfile_dict' and 'keyfile'.",
+          "title": "Key Path"
+        }
+      },
+      "title": "GoogleCloudPlatformConnectionExtraSchema",
+      "type": "object"
+    },
+    "GoogleCloudPlatformConnectionSchema": {
+      "description": "Google Cloud Storage\u2013style connection.\n\nDescribes access to objects stored in a GCS-compatible bucket. Credentials\ncan be provided via a parsed dictionary, raw JSON, or a file path.\n\nAttributes:\n    conn_type: Constant discriminator for this connection type\n        (``\"google_cloud_platform\"``).\n    extra: Provider-specific options, including credential sources.",
+      "properties": {
+        "host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Network host or endpoint (e.g., domain name or IP). Leave unset if not applicable.",
+          "title": "Host"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical schema, namespace, or protocol segment associated with the connection (e.g., database name, URI scheme).",
+          "title": "Schema"
+        },
+        "login": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username or identity used for authentication.",
+          "title": "Login"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Secret or token used for authentication (keep secure).",
+          "title": "Password"
+        },
+        "conn_type": {
+          "const": "google_cloud_platform",
+          "default": "google_cloud_platform",
+          "description": "Connection type discriminator. Always \"google_cloud_platform\" for this provider.",
+          "title": "Conn Type",
+          "type": "string"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionExtraSchema"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type-specific options including credential configuration."
+        }
+      },
+      "title": "GoogleCloudPlatformConnectionSchema",
+      "type": "object"
+    },
+    "LocalFsConnectionExtraSchema": {
+      "description": "Extra options for a local filesystem connection.\n\nAttributes:\n    base_path: Absolute base path on the local filesystem used to resolve\n        relative dataset or resource paths.",
+      "properties": {
+        "base_path": {
+          "description": "Absolute base path on the local filesystem used to resolve relative dataset or resource paths.",
+          "title": "Base Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base_path"
+      ],
+      "title": "LocalFsConnectionExtraSchema",
+      "type": "object"
+    },
+    "LocalFsConnectionSchema": {
+      "description": "Local filesystem connection.\n\nDescribes access to data stored on the same machine or mounted volumes.\n\nAttributes:\n    conn_type: Constant discriminator for this connection type (``\"fs\"``).\n    extra: Local filesystem\u2013specific configuration (e.g., base path).",
+      "properties": {
+        "host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Network host or endpoint (e.g., domain name or IP). Leave unset if not applicable.",
+          "title": "Host"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical schema, namespace, or protocol segment associated with the connection (e.g., database name, URI scheme).",
+          "title": "Schema"
+        },
+        "login": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username or identity used for authentication.",
+          "title": "Login"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Secret or token used for authentication (keep secure).",
+          "title": "Password"
+        },
+        "conn_type": {
+          "const": "fs",
+          "default": "fs",
+          "description": "Connection type discriminator. Always \"fs\" for local filesystem.",
+          "title": "Conn Type",
+          "type": "string"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocalFsConnectionExtraSchema"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type-specific options for local filesystem access."
+        }
+      },
+      "title": "LocalFsConnectionSchema",
+      "type": "object"
+    },
     "ParquetEntry": {
       "description": "Catalog entry describing a Parquet dataset.\n\nAttributes:\n    file_format: Literal string identifying the file format: `'parquet'`.\n    load_options: Optional configuration controlling Parquet *reading*\n        behavior (see :class:`ParquetLoadOptions`).\n    save_options: Optional configuration controlling Parquet *writing*\n        behavior (see :class:`ParquetSaveOptions`).",
       "properties": {
@@ -491,6 +727,12 @@
             {
               "additionalProperties": true,
               "type": "object"
+            },
+            {
+              "$ref": "#/$defs/LocalFsConnectionSchema"
+            },
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionSchema"
             }
           ],
           "description": "Airflow connection ID or dictionary representing a connection",
