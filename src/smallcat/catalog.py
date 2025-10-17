@@ -287,6 +287,11 @@ class Catalog(BaseModel):
 
         try:
             dictionary_entries = Variable.get(variable_id, deserialize_json=True)
+        except TypeError:
+            # LocalFilesystemBackend can return an object causing a TypeError
+            # In this case we don't need to deserialize into JSON
+            #  as it's not a string
+            dictionary_entries = Variable.get(variable_id)
         except ImportError as e:
             # Airflow fails with import error if variable is not present and tries
             #  to talk to the Task Supervisor (the runner process) over an internal
