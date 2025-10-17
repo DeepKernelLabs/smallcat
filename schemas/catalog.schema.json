@@ -1,0 +1,934 @@
+{
+  "$defs": {
+    "CSVEntry": {
+      "description": "Catalog entry describing a CSV dataset.\n\nAttributes:\n    file_format: Literal string identifying the file format: `'csv'`.\n    load_options: Options controlling CSV *reading* (see `CSVLoadOptions`).\n    save_options: Options controlling CSV *writing* (see `CSVSaveOptions`).",
+      "properties": {
+        "connection": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "$ref": "#/$defs/LocalFsConnectionSchema"
+            },
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionSchema"
+            }
+          ],
+          "description": "Airflow connection ID or dictionary representing a connection",
+          "title": "Connection"
+        },
+        "location": {
+          "description": "Relative location of data",
+          "title": "Location",
+          "type": "string"
+        },
+        "file_format": {
+          "const": "csv",
+          "default": "csv",
+          "title": "File Format",
+          "type": "string"
+        },
+        "load_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CSVLoadOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "save_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CSVSaveOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "connection",
+        "location",
+        "load_options",
+        "save_options"
+      ],
+      "title": "CSVEntry",
+      "type": "object"
+    },
+    "CSVLoadOptions": {
+      "description": "Options that control how CSV files are *read*.\n\nThese mirror DuckDB's `read_csv_auto` parameters we expose.\nAll fields are optional; unset values defer to DuckDB defaults.\n\nAttributes:\n----------\ncolumns\n    Optional mapping of column names to logical types\n    (e.g. {\"id\": \"INTEGER\", \"amount\": \"DOUBLE\"}) used to override\n    DuckDB's type inference when auto-detect is not good enough.\nsep\n    Field separator (e.g. \",\", \"|\", \"\\t\"). If None, DuckDB will try to detect it.\nheader\n    Whether the first row contains column names. If None, DuckDB will detect.\nsample_size\n    Number of rows to sample for schema detection. If None, DuckDB default applies.\nall_varchar\n    If True, read all columns as VARCHAR (string). Useful when types are messy.",
+      "properties": {
+        "columns": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Override inferred types per column, e.g. {'id': 'INTEGER'}.",
+          "title": "Columns"
+        },
+        "sep": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Field separator (e.g. ',', '|', '\\t'); auto-detected if None.",
+          "title": "Sep"
+        },
+        "header": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the first row is a header; auto-detected if None.",
+          "title": "Header"
+        },
+        "sample_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Rows to sample for inference; DuckDB default if None.",
+          "title": "Sample Size"
+        },
+        "all_varchar": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "If True, read all columns as VARCHAR.",
+          "title": "All Varchar"
+        }
+      },
+      "title": "CSVLoadOptions",
+      "type": "object"
+    },
+    "CSVSaveOptions": {
+      "description": "Options that control how CSV files are *written*.\n\nAttributes:\n----------\nheader\n    Whether to write a header row with column names.\nsep\n    Field separator to use when writing (e.g. ',', '|', '\\t').\noverwrite\n    If True, allow overwriting existing files at the destination.\n    Compression is *inferred from the file extension* ('.gz', '.zst', \u2026).",
+      "properties": {
+        "header": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Write a header row with column names.",
+          "title": "Header"
+        },
+        "sep": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Field separator to use (e.g. ',', '|', r'\t').",
+          "title": "Sep"
+        },
+        "overwrite": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "If True, overwrite existing files at the destination.",
+          "title": "Overwrite"
+        }
+      },
+      "title": "CSVSaveOptions",
+      "type": "object"
+    },
+    "DeltaTableEntry": {
+      "description": "Catalog entry describing a Delta Lake table dataset.\n\nThis entry specifies configuration for reading from or writing to Delta\nLake tables, typically stored on local or cloud-backed storage. It includes\nboth connection details and Delta-specific load/save options.\n\nAttributes:\n    file_format: Literal string identifying the file format: `'delta_table'`.\n    load_options: Optional configuration controlling Delta table *reading*\n        behavior (see :class:`DeltaTableLoadOptions`).\n    save_options: Optional configuration controlling Delta table *writing*\n        behavior (see :class:`DeltaTableSaveOptions`).",
+      "properties": {
+        "connection": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "$ref": "#/$defs/LocalFsConnectionSchema"
+            },
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionSchema"
+            }
+          ],
+          "description": "Airflow connection ID or dictionary representing a connection",
+          "title": "Connection"
+        },
+        "location": {
+          "description": "Relative location of data",
+          "title": "Location",
+          "type": "string"
+        },
+        "file_format": {
+          "const": "delta_table",
+          "default": "delta_table",
+          "title": "File Format",
+          "type": "string"
+        },
+        "load_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeltaTableLoadOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "save_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeltaTableSaveOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "connection",
+        "location",
+        "load_options",
+        "save_options"
+      ],
+      "title": "DeltaTableEntry",
+      "type": "object"
+    },
+    "DeltaTableLoadOptions": {
+      "description": "Options controlling how a Delta table is read.\n\nAttributes:\n  version: Optional table version to read.\n  without_files: If True, skip listing data files (metadata-only read).\n  log_buffer_size: Buffer size for reading Delta logs.",
+      "properties": {
+        "version": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        },
+        "without_files": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Without Files"
+        },
+        "log_buffer_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Log Buffer Size"
+        }
+      },
+      "title": "DeltaTableLoadOptions",
+      "type": "object"
+    },
+    "DeltaTableSaveOptions": {
+      "description": "Options controlling how a Delta table is written.\n\nAttributes:\n  mode: Write mode to apply if the table exists.\n  partition_by: Columns to partition by (Hive-style directory layout).\n  schema_mode: Strategy to reconcile schema differences during write.",
+      "properties": {
+        "mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WriteMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Write mode for existing tables."
+        },
+        "partition_by": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Columns to partition by (Hive-style directory layout).",
+          "title": "Partition By"
+        },
+        "schema_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SchemaMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How to handle schema differences on write."
+        }
+      },
+      "title": "DeltaTableSaveOptions",
+      "type": "object"
+    },
+    "ExcelEntry": {
+      "description": "Catalog entry describing an Excel dataset.\n\nAttributes:\n    file_format: Literal string identifying the file format: `'excel'`.\n    load_options: Options controlling Excel *reading* (see `ExcelLoadOptions`).\n    save_options: Options controlling Excel *writing* (see `ExcelSaveOptions`).",
+      "properties": {
+        "connection": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "$ref": "#/$defs/LocalFsConnectionSchema"
+            },
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionSchema"
+            }
+          ],
+          "description": "Airflow connection ID or dictionary representing a connection",
+          "title": "Connection"
+        },
+        "location": {
+          "description": "Relative location of data",
+          "title": "Location",
+          "type": "string"
+        },
+        "file_format": {
+          "const": "excel",
+          "default": "excel",
+          "title": "File Format",
+          "type": "string"
+        },
+        "load_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExcelLoadOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "save_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExcelSaveOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "connection",
+        "location",
+        "load_options",
+        "save_options"
+      ],
+      "title": "ExcelEntry",
+      "type": "object"
+    },
+    "ExcelLoadOptions": {
+      "description": "Options that control how an .xlsx file is read.\n\nAttributes:\n  header: If True, treat the first row as column headers.\n  sheet: Optional worksheet name to read. If omitted, the first sheet is used.\n  range: Excel A1-style range to read (e.g., \"A1:D100\").\n         If omitted, the full sheet is read.\n  all_varchar: If True, coerce all columns to VARCHAR (strings).\n  empty_as_varchar: If True, treat empty columns as VARCHAR instead of NULL/typed.",
+      "properties": {
+        "header": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Header"
+        },
+        "sheet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sheet"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range"
+        },
+        "all_varchar": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "All Varchar"
+        },
+        "empty_as_varchar": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Empty As Varchar"
+        }
+      },
+      "title": "ExcelLoadOptions",
+      "type": "object"
+    },
+    "ExcelSaveOptions": {
+      "description": "Options that control how an Arrow table is written to .xlsx.\n\nAttributes:\n  header: If True, include column headers in the output file.\n  sheet: Optional worksheet name to write into (created if missing).",
+      "properties": {
+        "header": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Header"
+        },
+        "sheet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sheet"
+        }
+      },
+      "title": "ExcelSaveOptions",
+      "type": "object"
+    },
+    "GoogleCloudPlatformConnectionExtraSchema": {
+      "description": "Extra options for a Google Cloud Storage\u2013style connection.\n\nExactly one of the key sources may be provided, depending on how\ncredentials are supplied.\n\nAttributes:\n    keyfile_dict: Service account credentials as a mapping (already-parsed\n        JSON). Useful when credentials are injected as structured data.\n    keyfile: Service account credentials as a raw JSON string.\n    key_path: Filesystem path to a service account key file accessible at\n        runtime.",
+      "properties": {
+        "keyfile_dict": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Service account credentials as a mapping (parsed JSON). Use when credentials are injected as structured data.",
+          "title": "Keyfile Dict"
+        },
+        "keyfile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Service account credentials as a raw JSON string. Mutually exclusive with 'keyfile_dict' and 'key_path'.",
+          "title": "Keyfile"
+        },
+        "key_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Path to a service account key file on the local or worker filesystem. Mutually exclusive with 'keyfile_dict' and 'keyfile'.",
+          "title": "Key Path"
+        }
+      },
+      "title": "GoogleCloudPlatformConnectionExtraSchema",
+      "type": "object"
+    },
+    "GoogleCloudPlatformConnectionSchema": {
+      "description": "Google Cloud Storage\u2013style connection.\n\nDescribes access to objects stored in a GCS-compatible bucket. Credentials\ncan be provided via a parsed dictionary, raw JSON, or a file path.\n\nAttributes:\n    conn_type: Constant discriminator for this connection type\n        (``\"google_cloud_platform\"``).\n    extra: Provider-specific options, including credential sources.",
+      "properties": {
+        "host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Network host or endpoint (e.g., domain name or IP). Leave unset if not applicable.",
+          "title": "Host"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical schema, namespace, or protocol segment associated with the connection (e.g., database name, URI scheme).",
+          "title": "Schema"
+        },
+        "login": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username or identity used for authentication.",
+          "title": "Login"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Secret or token used for authentication (keep secure).",
+          "title": "Password"
+        },
+        "conn_type": {
+          "const": "google_cloud_platform",
+          "default": "google_cloud_platform",
+          "description": "Connection type discriminator. Always \"google_cloud_platform\" for this provider.",
+          "title": "Conn Type",
+          "type": "string"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionExtraSchema"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type-specific options including credential configuration."
+        }
+      },
+      "title": "GoogleCloudPlatformConnectionSchema",
+      "type": "object"
+    },
+    "LocalFsConnectionExtraSchema": {
+      "description": "Extra options for a local filesystem connection.\n\nAttributes:\n    base_path: Absolute base path on the local filesystem used to resolve\n        relative dataset or resource paths.",
+      "properties": {
+        "base_path": {
+          "description": "Absolute base path on the local filesystem used to resolve relative dataset or resource paths.",
+          "title": "Base Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base_path"
+      ],
+      "title": "LocalFsConnectionExtraSchema",
+      "type": "object"
+    },
+    "LocalFsConnectionSchema": {
+      "description": "Local filesystem connection.\n\nDescribes access to data stored on the same machine or mounted volumes.\n\nAttributes:\n    conn_type: Constant discriminator for this connection type (``\"fs\"``).\n    extra: Local filesystem\u2013specific configuration (e.g., base path).",
+      "properties": {
+        "host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Network host or endpoint (e.g., domain name or IP). Leave unset if not applicable.",
+          "title": "Host"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical schema, namespace, or protocol segment associated with the connection (e.g., database name, URI scheme).",
+          "title": "Schema"
+        },
+        "login": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username or identity used for authentication.",
+          "title": "Login"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Secret or token used for authentication (keep secure).",
+          "title": "Password"
+        },
+        "conn_type": {
+          "const": "fs",
+          "default": "fs",
+          "description": "Connection type discriminator. Always \"fs\" for local filesystem.",
+          "title": "Conn Type",
+          "type": "string"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocalFsConnectionExtraSchema"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type-specific options for local filesystem access."
+        }
+      },
+      "title": "LocalFsConnectionSchema",
+      "type": "object"
+    },
+    "ParquetEntry": {
+      "description": "Catalog entry describing a Parquet dataset.\n\nAttributes:\n    file_format: Literal string identifying the file format: `'parquet'`.\n    load_options: Optional configuration controlling Parquet *reading*\n        behavior (see :class:`ParquetLoadOptions`).\n    save_options: Optional configuration controlling Parquet *writing*\n        behavior (see :class:`ParquetSaveOptions`).",
+      "properties": {
+        "connection": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "$ref": "#/$defs/LocalFsConnectionSchema"
+            },
+            {
+              "$ref": "#/$defs/GoogleCloudPlatformConnectionSchema"
+            }
+          ],
+          "description": "Airflow connection ID or dictionary representing a connection",
+          "title": "Connection"
+        },
+        "location": {
+          "description": "Relative location of data",
+          "title": "Location",
+          "type": "string"
+        },
+        "file_format": {
+          "const": "parquet",
+          "default": "parquet",
+          "title": "File Format",
+          "type": "string"
+        },
+        "load_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParquetLoadOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "save_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParquetSaveOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "connection",
+        "location",
+        "load_options",
+        "save_options"
+      ],
+      "title": "ParquetEntry",
+      "type": "object"
+    },
+    "ParquetLoadOptions": {
+      "description": "Options that control how Parquet is read via DuckDB.\n\nAttributes:\n  binary_as_string: If True, interpret BINARY columns as strings.\n  file_row_number: If True, include a synthetic row-number column per file.\n  hive_partitioning: If True, parse Hive-style directory partitions.\n  union_by_name: If True, align/union schemas by column name across files.",
+      "properties": {
+        "binary_as_string": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Binary As String"
+        },
+        "file_row_number": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Row Number"
+        },
+        "hive_partitioning": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hive Partitioning"
+        },
+        "union_by_name": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Union By Name"
+        }
+      },
+      "title": "ParquetLoadOptions",
+      "type": "object"
+    },
+    "ParquetSaveOptions": {
+      "description": "Options that control how Parquet is written via DuckDB.\n\nAttributes:\n  overwrite: If True, overwrite existing output.\n  partition_by: Columns to partition by (Hive-style layout).\n  write_partition_columns: If True, also materialize partition cols in files.",
+      "properties": {
+        "overwrite": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overwrite"
+        },
+        "partition_by": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Partition By"
+        },
+        "write_partition_columns": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Write Partition Columns"
+        }
+      },
+      "title": "ParquetSaveOptions",
+      "type": "object"
+    },
+    "SchemaMode": {
+      "description": "How schema changes are handled during writes.",
+      "enum": [
+        "merge",
+        "overwrite"
+      ],
+      "title": "SchemaMode",
+      "type": "string"
+    },
+    "WriteMode": {
+      "description": "Write behavior when the target table already exists.",
+      "enum": [
+        "append",
+        "overwrite",
+        "ignore"
+      ],
+      "title": "WriteMode",
+      "type": "string"
+    }
+  },
+  "description": "A collection of named datasets with associated loader configuration.\n\nThe catalog maps user-defined keys to concrete dataset entries (e.g., CSV or\nExcel). It can be constructed from an in-memory dictionary, an Airflow\nVariable (JSON), or a YAML file.\n\nAttributes:\n    entries: Mapping of dataset names to their configurations.",
+  "properties": {
+    "entries": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CSVEntry"
+          },
+          {
+            "$ref": "#/$defs/ExcelEntry"
+          },
+          {
+            "$ref": "#/$defs/ParquetEntry"
+          },
+          {
+            "$ref": "#/$defs/DeltaTableEntry"
+          }
+        ]
+      },
+      "description": "Named data sets",
+      "title": "Entries",
+      "type": "object"
+    }
+  },
+  "required": [
+    "entries"
+  ],
+  "title": "Catalog",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/DeepKernelLabs/smallcat/main/schemas/catalog.schema.json"
+}
