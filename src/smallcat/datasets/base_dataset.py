@@ -25,7 +25,7 @@ Dependencies:
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 import duckdb
 import pandas as pd
@@ -47,7 +47,7 @@ L = TypeVar("L", bound=BaseModel)  # Load options model
 S = TypeVar("S", bound=BaseModel)  # Save options model
 
 
-class BaseDataset[L, S](ABC):
+class BaseDataset(ABC, Generic[L, S]):
     """Base class for dataset loaders/savers backed by DuckDB and a connection.
 
     This class:
