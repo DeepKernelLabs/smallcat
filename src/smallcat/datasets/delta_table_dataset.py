@@ -84,7 +84,7 @@ class DeltaTableSaveOptions(BaseModel):
     )
 
 
-class DeltaTableDataset(BaseDataset):
+class DeltaTableDataset(BaseDataset[DeltaTableLoadOptions, DeltaTableSaveOptions]):
     """Delta Lake dataset that reads/writes via delta-rs (DeltaTable / write_deltalake).
 
     Paths passed to public methods are treated as **relative** to the dataset's
@@ -210,9 +210,25 @@ class DeltaTableDataset(BaseDataset):
             self._set_databricks_acces_variables()
         else:
             storage_options = self._delta_storage_options()
-            write_deltalake(
-                table_or_uri=table_uri,
-                data=table,
-                storage_options=storage_options,
-                **self.save_options_dict(),
-            )
+            try:
+                engine = (
+                    "rust"
+                    if self.save_options is not None
+                    and self.save_options.schema_mode == SchemaMode.MERGE
+                    else "pyarrow"
+                )
+                write_deltalake(
+                    table_or_uri=table_uri,
+                    data=table,
+                    storage_options=storage_options,
+                    engine=engine,
+                    **self.save_options_dict(),
+                )
+            except TypeError:
+                # Newer versions use the rust engine and don't take the engine parameter
+                write_deltalake(
+                    table_or_uri=table_uri,
+                    data=table,
+                    storage_options=storage_options,
+                    **self.save_options_dict(),
+                )
