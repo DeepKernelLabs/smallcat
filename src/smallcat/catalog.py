@@ -34,6 +34,7 @@ from smallcat.datasets.parquet_dataset import (
 
 if typing.TYPE_CHECKING:
     import pandas as pd
+    import pyarrow as pa
 
 
 class EntryBase(BaseModel, ABC):
@@ -110,6 +111,41 @@ class EntryBase(BaseModel, ABC):
             Exception: Any other error raised by the underlying dataset implementation.
         """
         self.build_dataset().save_pandas(self.location, df)
+
+    def load_arrow(self) -> "pa.Table":
+        """Load this entry's dataset as an Apache Arrow Table.
+
+        This method builds the concrete dataset via :meth:`build_dataset` and
+        delegates to its `load_arrow_table`` method using this entry's `location`.
+        Any dataset-specific load options configured on the entry are respected.
+
+        Returns:
+            pa.Table: The loaded Arrow table.
+
+        Raises:
+            FileNotFoundError: If the source does not exist at the target location.
+            PermissionError: If the source cannot be read.
+            ValueError: If the source is incompatible with Arrow or configured options.
+            Exception: Any other error raised by the underlying dataset implementation.
+        """
+        return self.build_dataset().load_arrow_table(self.location)
+
+    def save_arrow(self, table: "pa.Table") -> None:
+        """Save an Apache Arrow Table to this entry's dataset location.
+
+        This method builds the concrete dataset via :meth:`build_dataset` and
+        delegates to its `save_arrow_table` method using this entry's `location`.
+        Any dataset-specific save options configured on the entry are respected.
+
+        Args:
+            table (pa.Table): The Arrow table to persist.
+
+        Raises:
+            PermissionError: If the target cannot be written to.
+            ValueError: If the table is incompatible with the target format/options.
+            Exception: Any other error raised by the underlying dataset implementation.
+        """
+        self.build_dataset().save_arrow_table(self.location, table)
 
 
 class CSVEntry(EntryBase):
@@ -380,3 +416,42 @@ class Catalog(BaseModel):
         """
         entry = self._get_entry(key)
         entry.save_pandas(df)
+
+    def load_arrow(self, key: str) -> "pa.Table":
+        """Load a dataset from the catalog into an Apache Arrow Table.
+
+        Resolves the catalog entry identified by `key` and delegates to
+        :meth:`EntryBase.load_arrow`. This is equivalent to:
+
+            `self.entries[key].build_dataset().load_arrow_table(entry.location)`
+
+        Args:
+            key: The catalog entry name to load.
+
+        Returns:
+            pa.Table: The loaded Arrow table.
+
+        Raises:
+            KeyError: If `key` is not present in the catalog.
+            Exception: Any error propagated from the underlying dataset's loader.
+        """
+        entry = self._get_entry(key)
+        return entry.load_arrow()
+
+    def save_arrow(self, key: str, table: "pa.Table") -> None:
+        """Save an Apache Arrow Table to a dataset in the catalog.
+
+        Resolves the catalog entry identified by `key` and delegates to
+        :meth:`EntryBase.save_arrow`. This writes to the entry's configured
+        `location` with any format-specific save options applied.
+
+        Args:
+            key: The catalog entry name to write to.
+            table (pa.Table): The Arrow table to persist.
+
+        Raises:
+            KeyError: If `key` is not present in the catalog.
+            Exception: Any error propagated from the underlying dataset's saver.
+        """
+        entry = self._get_entry(key)
+        entry.save_arrow(table)
