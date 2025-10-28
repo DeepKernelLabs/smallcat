@@ -324,12 +324,13 @@ class BaseDataset(ABC, Generic[L, S]):
         Returns:
           None
         """
-        con.execute(
-            f"""
-            CREATE OR REPLACE SECRET (
-                TYPE gcs,
-                KEY_ID '{self.conn.login}',
-                SECRET '{self.conn.password}'
-            );
-            """,
-        )
+        if self.conn.login and self.conn.password:
+            con.execute(
+                f"""
+              CREATE OR REPLACE SECRET (
+                  TYPE gcs,
+                  KEY_ID '{self.conn.login}',
+                  SECRET '{self.conn.password}'
+              );
+              """,
+            )
