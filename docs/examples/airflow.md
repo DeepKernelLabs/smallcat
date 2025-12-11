@@ -128,7 +128,7 @@ with DAG(
     def ds_pipeline():
         catalog = Catalog.from_airflow_variable("my_catalog")
 
-        df = catalog.load_pandas("foo")
+        df = catalog.load_pandas("foo", where="event_date >= '2024-01-01'")
         out = transform(df)     # Function should be pure, only IO happens in the pipeline with the catalog
         catalog.save_pandas("foo_processed", out)
 

@@ -65,19 +65,12 @@ class ExcelDataset(BaseDataset[ExcelLoadOptions, ExcelSaveOptions]):
         `gs://`); use the connection extras to set the base.
     """
 
-    def load_arrow_table(self, path: str) -> pa.Table:
-        """Load an .xlsx worksheet (or range) as a PyArrow table.
-
-        Args:
-          path: Relative path to the .xlsx file (joined under the dataset base).
-
-        Returns:
-          A `pyarrow.Table` with the loaded data.
-
-        Implementation details:
-          Uses DuckDB's `read_xlsx` from the `excel` extension. Load-time
-          options are translated into the corresponding function arguments.
-        """
+    def load_arrow_record_batch_reader(
+        self,
+        path: str,
+        where: str | None = None,
+    ) -> pa.RecordBatchReader:
+        """Stream .xlsx rows as record batches with an optional filter."""
         full_uri = self._full_uri(path)
         with self._duckdb_conn() as con:
             con.install_extension("excel")
@@ -95,7 +88,9 @@ class ExcelDataset(BaseDataset[ExcelLoadOptions, ExcelSaveOptions]):
             if empty_as_varchar := lo.get("empty_as_varchar"):
                 args_sql += f", empty_as_varchar = {str(empty_as_varchar).lower()}"
             query = f"select * from read_xlsx(?{args_sql})"  # noqa: S608
-            return con.execute(query, [full_uri]).fetch_arrow_table()
+            if where:
+                query += f" where {where}"
+            return con.execute(query, [full_uri]).fetch_record_batch()
 
     def save_arrow_table(self, path: str, table: pa.Table) -> None:
         """Write a PyArrow table to an .xlsx file.

@@ -162,22 +162,12 @@ class DeltaTableDataset(BaseDataset[DeltaTableLoadOptions, DeltaTableSaveOptions
         os.environ["DATABRICKS_WORKSPACE_URL"] = self.conn.host
         os.environ["DATABRICKS_ACCESS_TOKEN"] = self.conn.password
 
-    def load_arrow_table(self, path: str) -> pa.Table:
-        """Load a Delta Lake table as a PyArrow table.
-
-        Args:
-          path: Relative path to the Delta table root (joined under the
-            dataset's base URI).
-
-        Returns:
-          A `pyarrow.Table` with the loaded data, when reading through
-          delta-rs (non-Databricks).
-
-        Notes:
-          * If `conn_type == "databricks"`, this method sets Databricks
-            environment variables via `_set_databricks_acces_variables`.
-            (No delta-rs read is performed here.)
-        """
+    def load_arrow_record_batch_reader(
+        self,
+        path: str,
+        where: str | None = None,
+    ) -> pa.RecordBatchReader:
+        """Stream Delta Lake rows via DuckDB with an optional filter."""
         full_uri = self._full_uri(path)
         if self.conn.conn_type == "databricks":
             self._set_databricks_acces_variables()
@@ -189,7 +179,13 @@ class DeltaTableDataset(BaseDataset[DeltaTableLoadOptions, DeltaTableSaveOptions
             storage_options=storage_options,
             **self.load_options_dict(),
         )
-        return dt.to_pyarrow_table()
+        dataset = dt.to_pyarrow_dataset()
+        with self._duckdb_conn() as con:
+            con.register("data", dataset)
+            query = "select * from data"
+            if where:
+                query += f" where {where}"
+            return con.sql(query).fetch_record_batch()
 
     def save_arrow_table(self, path: str, table: pa.Table) -> None:
         """Write a PyArrow table to Delta Lake using delta-rs.

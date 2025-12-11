@@ -59,6 +59,15 @@ catalog.save_pandas("foo", df)
 df2 = catalog.load_pandas("foo")
 ```
 
+### Filter on load
+
+`load_pandas` (and the lower-level Arrow loaders) accept an optional `where`
+SQL predicate to push filters down to DuckDB/Arrow when reading:
+
+```python
+df = catalog.load_pandas("bar", where="event_date >= '2024-01-01'")
+```
+
 ### With Airflow
 ```python
 from smallcat import Catalog
