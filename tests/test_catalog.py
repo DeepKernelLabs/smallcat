@@ -1,5 +1,7 @@
 import json
+
 import pandas as pd
+import pyarrow as pa
 import pytest
 import yaml
 
@@ -42,8 +44,13 @@ def test_catalog_dict(example_catalog, example_df):
     filtered_df = catalog.load_pandas('foo', where="amount > 10")
     expected_filtered = example_df[example_df["amount"] > 10].reset_index(drop=True)
 
+    loaded_arrow = catalog.load_arrow('foo', where="amount > 10")
+    assert isinstance(loaded_arrow, pa.Table)
+    arrow_filtered_df = loaded_arrow.to_pandas().reset_index(drop=True)
+
     pd.testing.assert_frame_equal(example_df, loaded_df)
     pd.testing.assert_frame_equal(expected_filtered, filtered_df.reset_index(drop=True))
+    pd.testing.assert_frame_equal(expected_filtered, arrow_filtered_df)
 
 
 def test_catalog_yaml(example_catalog, tmp_path):
