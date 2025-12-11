@@ -68,24 +68,19 @@ class ParquetDataset(BaseDataset):
         or any glob DuckDB understands.
     """
 
-    def load_arrow_table(self, path: str) -> pa.Table:
-        """Load Parquet data as a PyArrow table.
-
-        Args:
-          path: Relative path, directory, or glob of Parquet files (joined
-            under the dataset base URI).
-
-        Returns:
-          A `pyarrow.Table` containing the loaded rows.
-
-        Implementation details:
-          Delegates to `DuckDB.read_parquet` with parameters from
-          `load_options_dict()` and fetches the result as an Arrow table.
-        """
+    def load_arrow_record_batch_reader(
+        self,
+        path: str,
+        where: str | None = None,
+    ) -> pa.RecordBatchReader:
+        """Stream Parquet rows as record batches with an optional filter."""
         full_uri = self._full_uri(path)
         with self._duckdb_conn() as con:
             rel = con.read_parquet(full_uri, **self.load_options_dict())
-            return rel.fetch_arrow_table()
+            query = "select * from data"
+            if where:
+                query += f" where {where}"
+            return rel.query("data", query).fetch_record_batch()
 
     def save_arrow_table(self, path: str, table: pa.Table) -> None:
         """Write a PyArrow table to Parquet.

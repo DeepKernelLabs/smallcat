@@ -126,30 +126,19 @@ class CSVDataset(BaseDataset[CSVLoadOptions, CSVSaveOptions]):
     - Use :class:`CSVSaveOptions` to control delimiter, header, and overwrite behavior.
     """
 
-    def load_arrow_table(self, path: str) -> pa.Table:
-        """Load a CSV file (or files) into a PyArrow Table.
-
-        Parameters
-        ----------
-        path
-            Path to a single CSV file or a glob, relative to the connection base.
-
-        Returns:
-        -------
-        pyarrow.Table
-            The loaded data as an Arrow table.
-
-        Raises:
-        ------
-        duckdb.CatalogException
-            If the path cannot be resolved.
-        duckdb.IOException
-            If the file cannot be read.
-        """
+    def load_arrow_record_batch_reader(
+        self,
+        path: str,
+        where: str | None = None,
+    ) -> pa.RecordBatchReader:
+        """Stream CSV rows as `RecordBatch`es with an optional filter."""
         full_uri = self._full_uri(path)
         with self._duckdb_conn() as con:
             rel = con.read_csv(full_uri, **self.load_options_dict())
-            return rel.fetch_arrow_table()
+            query = "select * from data"
+            if where:
+                query += f" where {where}"
+            return rel.query("data", query).fetch_record_batch()
 
     def save_arrow_table(self, path: str, table: pa.Table) -> None:
         """Write a PyArrow Table to CSV.

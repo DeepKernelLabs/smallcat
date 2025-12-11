@@ -16,7 +16,8 @@ Typical usage:
 Key concepts:
   * `_full_uri(rel_path)` joins relative paths to the connection's base URI.
   * `_duckdb_conn()` returns a fresh, configured DuckDB connection per call.
-  * Subclasses must implement `load_arrow_table` and `save_arrow_table`.
+  * Subclasses must implement `load_arrow_record_batch_reader` and
+    `save_arrow_table`.
 
 Dependencies:
   duckdb, pyarrow, pandas, pydantic, and Smallcat connection utilities.
@@ -138,19 +139,41 @@ class BaseDataset(ABC, Generic[L, S]):
 
     # ---------- Public API ----------
 
-    @abstractmethod
-    def load_arrow_table(self, path: str) -> pa.Table:
+    def load_arrow_table(self, path: str, where: str | None = None) -> pa.Table:
         """Load data as a PyArrow table.
 
-        Subclasses must implement this to execute a query or read from storage.
+        Default implementation delegates to
+        :meth:`load_arrow_record_batch_reader` (optionally with a filter) and
+        consumes the resulting batches into a `pyarrow.Table`.
 
         Args:
           path: Relative dataset path (joined under the connection's base).
             Use `self._full_uri(path)` for the fully-qualified location and
             `self._duckdb_conn()` for an isolated DuckDB connection.
+          where: Optional SQL filter predicate injected into the query.
 
         Returns:
           A `pyarrow.Table` with the loaded data.
+        """
+        reader = self.load_arrow_record_batch_reader(path=path, where=where)
+        return reader.read_all()
+
+    @abstractmethod
+    def load_arrow_record_batch_reader(
+        self,
+        path: str,
+        where: str | None = None,
+    ) -> pa.RecordBatchReader:
+        """Stream data as a RecordBatchReader with an optional SQL filter.
+
+        Args:
+          path: Relative dataset path.
+          where: Optional SQL filter predicate injected into the query, e.g.
+            "event_date > '2024-01-01'". Implementations should handle an
+            empty string by returning all rows.
+
+        Returns:
+          A `pyarrow.RecordBatchReader` yielding filtered batches.
         """
         ...
 
@@ -167,18 +190,20 @@ class BaseDataset(ABC, Generic[L, S]):
         """
         ...
 
-    def load_pandas(self, path: str) -> pd.DataFrame:
+    def load_pandas(self, path: str, where: str | None = None) -> pd.DataFrame:
         """Load data as a pandas DataFrame.
 
-        This is a convenience wrapper over `load_arrow_table`.
+        This is a convenience wrapper over `load_arrow_table` and pushes down
+        filters when provided.
 
         Args:
           path: Relative dataset path.
+          where: Optional SQL filter predicate injected into the query.
 
         Returns:
           A pandas `DataFrame`.
         """
-        arrow_table = self.load_arrow_table(path)
+        arrow_table = self.load_arrow_table(path=path, where=where)
         return arrow_table.to_pandas()
 
     def save_pandas(self, path: str, df: pd.DataFrame) -> None:
