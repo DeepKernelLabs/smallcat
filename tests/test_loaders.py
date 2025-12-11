@@ -138,3 +138,15 @@ def test_delta_table_dataset(example_df, local_conn, save_options, load_options)
     loaded_df = dataset.load_pandas(table_path)
 
     pd.testing.assert_frame_equal(example_df, loaded_df)
+
+
+def test_delta_table_dataset_with_where(example_df, local_conn):
+    table_path = "foo/"
+    saver = DeltaTableDataset(local_conn)
+    saver.save_pandas(table_path, example_df)
+
+    dataset = DeltaTableDataset(local_conn)
+    loaded_df = dataset.load_pandas(table_path, where="amount > 10")
+
+    expected_df = example_df[example_df["amount"] > 10].reset_index(drop=True)
+    pd.testing.assert_frame_equal(expected_df, loaded_df.reset_index(drop=True))
