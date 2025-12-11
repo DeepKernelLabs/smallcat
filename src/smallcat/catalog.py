@@ -78,12 +78,15 @@ class EntryBase(BaseModel, ABC):
         """Construct and return the concrete dataset for this entry."""
         raise NotImplementedError
 
-    def load_pandas(self) -> "pd.DataFrame":
+    def load_pandas(self, where: str | None = None) -> "pd.DataFrame":
         """Load this entry's dataset into a pandas DataFrame.
 
         This method builds the concrete dataset via :meth:`build_dataset` and
         delegates to its ``load_pandas`` method using this entry's ``location``.
         Any dataset-specific load options configured on the entry are respected.
+
+        Args:
+            where: Optional SQL filter predicate forwarded to the dataset.
 
         Returns:
             pd.DataFrame: The loaded tabular data.
@@ -93,7 +96,7 @@ class EntryBase(BaseModel, ABC):
             ValueError: If the data cannot be parsed as tabular data.
             Exception: Any other error raised by the underlying dataset implementation.
         """
-        return self.build_dataset().load_pandas(self.location)
+        return self.build_dataset().load_pandas(self.location, where=where)
 
     def save_pandas(self, df: "pd.DataFrame") -> None:
         """Save a pandas DataFrame to this entry's dataset location.
@@ -378,7 +381,7 @@ class Catalog(BaseModel):
         entry = self._get_entry(key)
         return entry.build_dataset()
 
-    def load_pandas(self, key: str) -> "pd.DataFrame":
+    def load_pandas(self, key: str, where: str | None = None) -> "pd.DataFrame":
         """Load a dataset from the catalog into a pandas DataFrame.
 
         Resolves the catalog entry identified by ``key`` and delegates to
@@ -388,6 +391,7 @@ class Catalog(BaseModel):
 
         Args:
             key: The catalog entry name to load.
+            where: Optional SQL filter predicate forwarded to the dataset.
 
         Returns:
             pd.DataFrame: The loaded tabular data.
@@ -397,7 +401,7 @@ class Catalog(BaseModel):
             Exception: Any error propagated from the underlying dataset's loader.
         """
         entry = self._get_entry(key)
-        return entry.load_pandas()
+        return entry.load_pandas(where=where)
 
     def save_pandas(self, key: str, df: "pd.DataFrame") -> None:
         """Save a pandas DataFrame to a dataset in the catalog.

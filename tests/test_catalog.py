@@ -39,7 +39,11 @@ def test_catalog_dict(example_catalog, example_df):
     catalog.save_pandas('foo', example_df)
     loaded_df = catalog.load_pandas('foo')
 
+    filtered_df = catalog.load_pandas('foo', where="amount > 10")
+    expected_filtered = example_df[example_df["amount"] > 10].reset_index(drop=True)
+
     pd.testing.assert_frame_equal(example_df, loaded_df)
+    pd.testing.assert_frame_equal(expected_filtered, filtered_df.reset_index(drop=True))
 
 
 def test_catalog_yaml(example_catalog, tmp_path):
