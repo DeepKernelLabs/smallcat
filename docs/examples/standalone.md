@@ -58,7 +58,7 @@ def main():
     catalog = Catalog.from_yaml('catalog.yaml')
     catalog.save_pandas('foo', df=get_example_dataset())
 
-    df = catalog.load_pandas('foo')
+    df = catalog.load_pandas('foo', where="precipitation > 0")
     print(df.head())
 
 
