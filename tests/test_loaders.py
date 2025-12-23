@@ -146,7 +146,38 @@ def test_delta_table_dataset_with_where(example_df, local_conn):
     saver.save_pandas(table_path, example_df)
 
     dataset = DeltaTableDataset(local_conn)
-    loaded_df = dataset.load_pandas(table_path, where="amount > 10")
+    loaded_df = dataset.load_pandas(
+        table_path,
+        where="amount > 10",
+        columns=["id", "amount"],
+    )
 
-    expected_df = example_df[example_df["amount"] > 10].reset_index(drop=True)
+    expected_df = (
+        example_df.loc[example_df["amount"] > 10, ["id", "amount"]]
+        .reset_index(drop=True)
+    )
     pd.testing.assert_frame_equal(expected_df, loaded_df.reset_index(drop=True))
+
+
+def test_csv_dataset_with_columns(example_df, local_conn):
+    file_name = "foo.csv"
+    saver = CSVDataset(local_conn)
+    saver.save_pandas(file_name, example_df)
+
+    dataset = CSVDataset(local_conn)
+    loaded_df = dataset.load_pandas(file_name, columns=["name", "id"])
+
+    expected_df = example_df[["name", "id"]]
+    pd.testing.assert_frame_equal(expected_df.reset_index(drop=True), loaded_df)
+
+
+def test_csv_dataset_rejects_unsafe_inputs(example_df, local_conn):
+    file_name = "foo.csv"
+    saver = CSVDataset(local_conn)
+    saver.save_pandas(file_name, example_df)
+
+    dataset = CSVDataset(local_conn)
+    with pytest.raises(ValueError):
+        dataset.load_pandas(file_name, where="amount > 10; drop table data")
+    with pytest.raises(ValueError):
+        dataset.load_pandas(file_name, columns=["name;drop"])

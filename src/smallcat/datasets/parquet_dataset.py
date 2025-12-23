@@ -72,14 +72,13 @@ class ParquetDataset(BaseDataset):
         self,
         path: str,
         where: str | None = None,
+        columns: list[str] | None = None,
     ) -> pa.RecordBatchReader:
         """Stream Parquet rows as record batches with an optional filter."""
         full_uri = self._full_uri(path)
+        query = self._build_query("data", columns, where)
         with self._duckdb_conn() as con:
             rel = con.read_parquet(full_uri, **self.load_options_dict())
-            query = "select * from data"
-            if where:
-                query += f" where {where}"
             return rel.query("data", query).fetch_record_batch()
 
     def save_arrow_table(self, path: str, table: pa.Table) -> None:

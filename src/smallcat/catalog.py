@@ -78,7 +78,11 @@ class EntryBase(BaseModel, ABC):
         """Construct and return the concrete dataset for this entry."""
         raise NotImplementedError
 
-    def load_pandas(self, where: str | None = None) -> "pd.DataFrame":
+    def load_pandas(
+        self,
+        where: str | None = None,
+        columns: list[str] | None = None,
+    ) -> "pd.DataFrame":
         """Load this entry's dataset into a pandas DataFrame.
 
         This method builds the concrete dataset via :meth:`build_dataset` and
@@ -87,6 +91,7 @@ class EntryBase(BaseModel, ABC):
 
         Args:
             where: Optional SQL filter predicate forwarded to the dataset.
+            columns: Optional list of columns to project.
 
         Returns:
             pd.DataFrame: The loaded tabular data.
@@ -96,7 +101,11 @@ class EntryBase(BaseModel, ABC):
             ValueError: If the data cannot be parsed as tabular data.
             Exception: Any other error raised by the underlying dataset implementation.
         """
-        return self.build_dataset().load_pandas(self.location, where=where)
+        return self.build_dataset().load_pandas(
+            self.location,
+            where=where,
+            columns=columns,
+        )
 
     def save_pandas(self, df: "pd.DataFrame") -> None:
         """Save a pandas DataFrame to this entry's dataset location.
@@ -115,7 +124,11 @@ class EntryBase(BaseModel, ABC):
         """
         self.build_dataset().save_pandas(self.location, df)
 
-    def load_arrow(self, where: str | None = None) -> "pa.Table":
+    def load_arrow(
+        self,
+        where: str | None = None,
+        columns: list[str] | None = None,
+    ) -> "pa.Table":
         """Load this entry's dataset as an Apache Arrow Table.
 
         This method builds the concrete dataset via :meth:`build_dataset` and
@@ -124,6 +137,7 @@ class EntryBase(BaseModel, ABC):
 
         Args:
             where: Optional SQL filter predicate forwarded to the dataset.
+            columns: Optional list of columns to project.
 
         Returns:
             pa.Table: The loaded Arrow table.
@@ -134,7 +148,11 @@ class EntryBase(BaseModel, ABC):
             ValueError: If the source is incompatible with Arrow or configured options.
             Exception: Any other error raised by the underlying dataset implementation.
         """
-        return self.build_dataset().load_arrow_table(self.location, where=where)
+        return self.build_dataset().load_arrow_table(
+            self.location,
+            where=where,
+            columns=columns,
+        )
 
     def save_arrow(self, table: "pa.Table") -> None:
         """Save an Apache Arrow Table to this entry's dataset location.
@@ -384,7 +402,12 @@ class Catalog(BaseModel):
         entry = self._get_entry(key)
         return entry.build_dataset()
 
-    def load_pandas(self, key: str, where: str | None = None) -> "pd.DataFrame":
+    def load_pandas(
+        self,
+        key: str,
+        where: str | None = None,
+        columns: list[str] | None = None,
+    ) -> "pd.DataFrame":
         """Load a dataset from the catalog into a pandas DataFrame.
 
         Resolves the catalog entry identified by ``key`` and delegates to
@@ -395,6 +418,7 @@ class Catalog(BaseModel):
         Args:
             key: The catalog entry name to load.
             where: Optional SQL filter predicate forwarded to the dataset.
+            columns: Optional list of columns to project.
 
         Returns:
             pd.DataFrame: The loaded tabular data.
@@ -404,7 +428,7 @@ class Catalog(BaseModel):
             Exception: Any error propagated from the underlying dataset's loader.
         """
         entry = self._get_entry(key)
-        return entry.load_pandas(where=where)
+        return entry.load_pandas(where=where, columns=columns)
 
     def save_pandas(self, key: str, df: "pd.DataFrame") -> None:
         """Save a pandas DataFrame to a dataset in the catalog.
@@ -424,7 +448,12 @@ class Catalog(BaseModel):
         entry = self._get_entry(key)
         entry.save_pandas(df)
 
-    def load_arrow(self, key: str, where: str | None = None) -> "pa.Table":
+    def load_arrow(
+        self,
+        key: str,
+        where: str | None = None,
+        columns: list[str] | None = None,
+    ) -> "pa.Table":
         """Load a dataset from the catalog into an Apache Arrow Table.
 
         Resolves the catalog entry identified by `key` and delegates to
@@ -435,6 +464,7 @@ class Catalog(BaseModel):
         Args:
             key: The catalog entry name to load.
             where: Optional SQL filter predicate forwarded to the dataset.
+            columns: Optional list of columns to project.
 
         Returns:
             pa.Table: The loaded Arrow table.
@@ -444,7 +474,7 @@ class Catalog(BaseModel):
             Exception: Any error propagated from the underlying dataset's loader.
         """
         entry = self._get_entry(key)
-        return entry.load_arrow(where=where)
+        return entry.load_arrow(where=where, columns=columns)
 
     def save_arrow(self, key: str, table: "pa.Table") -> None:
         """Save an Apache Arrow Table to a dataset in the catalog.

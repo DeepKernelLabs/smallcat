@@ -19,6 +19,8 @@ Options:
   * `ExcelSaveOptions`: header, sheet.
 """
 
+import re
+
 import pyarrow as pa
 from pydantic import BaseModel, Field
 
@@ -69,9 +71,11 @@ class ExcelDataset(BaseDataset[ExcelLoadOptions, ExcelSaveOptions]):
         self,
         path: str,
         where: str | None = None,
+        columns: list[str] | None = None,
     ) -> pa.RecordBatchReader:
         """Stream .xlsx rows as record batches with an optional filter."""
         full_uri = self._full_uri(path)
+        query = self._build_query("data", columns, where)
         with self._duckdb_conn() as con:
             con.install_extension("excel")
             con.load_extension("excel")
@@ -87,10 +91,13 @@ class ExcelDataset(BaseDataset[ExcelLoadOptions, ExcelSaveOptions]):
                 args_sql += f", all_varchar = {str(all_varchar).lower()}"
             if empty_as_varchar := lo.get("empty_as_varchar"):
                 args_sql += f", empty_as_varchar = {str(empty_as_varchar).lower()}"
-            query = f"select * from read_xlsx(?{args_sql})"  # noqa: S608
-            if where:
-                query += f" where {where}"
-            return con.execute(query, [full_uri]).fetch_record_batch()
+            sql = re.sub(
+                r"FROM\s+data",
+                f"from read_xlsx(?{args_sql})",
+                query,
+                flags=re.IGNORECASE,
+            )
+            return con.execute(sql, [full_uri]).fetch_record_batch()
 
     def save_arrow_table(self, path: str, table: pa.Table) -> None:
         """Write a PyArrow table to an .xlsx file.
