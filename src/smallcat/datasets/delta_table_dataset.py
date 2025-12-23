@@ -166,6 +166,7 @@ class DeltaTableDataset(BaseDataset[DeltaTableLoadOptions, DeltaTableSaveOptions
         self,
         path: str,
         where: str | None = None,
+        columns: list[str] | None = None,
     ) -> pa.RecordBatchReader:
         """Stream Delta Lake rows via DuckDB with an optional filter."""
         full_uri = self._full_uri(path)
@@ -173,6 +174,7 @@ class DeltaTableDataset(BaseDataset[DeltaTableLoadOptions, DeltaTableSaveOptions
             self._set_databricks_acces_variables()
             raise NotImplementedError
 
+        query = self._build_query("data", columns, where)
         storage_options = self._delta_storage_options()
         dt = DeltaTable(
             full_uri,
@@ -182,9 +184,6 @@ class DeltaTableDataset(BaseDataset[DeltaTableLoadOptions, DeltaTableSaveOptions
         dataset = dt.to_pyarrow_dataset()
         with self._duckdb_conn() as con:
             con.register("data", dataset)
-            query = "select * from data"
-            if where:
-                query += f" where {where}"
             return con.sql(query).fetch_record_batch()
 
     def save_arrow_table(self, path: str, table: pa.Table) -> None:

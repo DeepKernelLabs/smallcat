@@ -26,12 +26,13 @@ Dependencies:
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 import duckdb
 import pandas as pd
 import pyarrow as pa
 from pydantic import BaseModel
+from sqlalchemy import MetaData, Table, literal_column, select, text
 
 from smallcat.connections import ConnectionLike, ConnectionProtocol
 from smallcat.path_utils import norm_join_uri, to_relative_posix_path
@@ -139,7 +140,12 @@ class BaseDataset(ABC, Generic[L, S]):
 
     # ---------- Public API ----------
 
-    def load_arrow_table(self, path: str, where: str | None = None) -> pa.Table:
+    def load_arrow_table(
+        self,
+        path: str,
+        where: str | None = None,
+        columns: list[str] | None = None,
+    ) -> pa.Table:
         """Load data as a PyArrow table.
 
         Default implementation delegates to
@@ -151,11 +157,16 @@ class BaseDataset(ABC, Generic[L, S]):
             Use `self._full_uri(path)` for the fully-qualified location and
             `self._duckdb_conn()` for an isolated DuckDB connection.
           where: Optional SQL filter predicate injected into the query.
+          columns: Optional list of columns to project.
 
         Returns:
           A `pyarrow.Table` with the loaded data.
         """
-        reader = self.load_arrow_record_batch_reader(path=path, where=where)
+        reader = self.load_arrow_record_batch_reader(
+            path=path,
+            where=where,
+            columns=columns,
+        )
         return reader.read_all()
 
     @abstractmethod
@@ -163,6 +174,7 @@ class BaseDataset(ABC, Generic[L, S]):
         self,
         path: str,
         where: str | None = None,
+        columns: list[str] | None = None,
     ) -> pa.RecordBatchReader:
         """Stream data as a RecordBatchReader with an optional SQL filter.
 
@@ -171,6 +183,7 @@ class BaseDataset(ABC, Generic[L, S]):
           where: Optional SQL filter predicate injected into the query, e.g.
             "event_date > '2024-01-01'". Implementations should handle an
             empty string by returning all rows.
+          columns: Optional list of columns to select.
 
         Returns:
           A `pyarrow.RecordBatchReader` yielding filtered batches.
@@ -190,7 +203,12 @@ class BaseDataset(ABC, Generic[L, S]):
         """
         ...
 
-    def load_pandas(self, path: str, where: str | None = None) -> pd.DataFrame:
+    def load_pandas(
+        self,
+        path: str,
+        where: str | None = None,
+        columns: list[str] | None = None,
+    ) -> pd.DataFrame:
         """Load data as a pandas DataFrame.
 
         This is a convenience wrapper over `load_arrow_table` and pushes down
@@ -199,11 +217,16 @@ class BaseDataset(ABC, Generic[L, S]):
         Args:
           path: Relative dataset path.
           where: Optional SQL filter predicate injected into the query.
+          columns: Optional list of columns to project.
 
         Returns:
           A pandas `DataFrame`.
         """
-        arrow_table = self.load_arrow_table(path=path, where=where)
+        arrow_table = self.load_arrow_table(
+            path=path,
+            where=where,
+            columns=columns,
+        )
         return arrow_table.to_pandas()
 
     def save_pandas(self, path: str, df: pd.DataFrame) -> None:
@@ -261,6 +284,56 @@ class BaseDataset(ABC, Generic[L, S]):
         if not self.base_uri:
             return to_relative_posix_path(rel_path)
         return norm_join_uri(self.base_uri, rel_path)
+
+    def _select_clause(self, columns: list[str] | None) -> str:
+        """Return a sanitized SELECT clause for DuckDB queries.
+
+        Only allows simple identifiers (with an optional single dot) to avoid
+        basic SQL injection. Raises ``ValueError`` on invalid column names.
+        """
+        if not columns:
+            return "*"
+
+        ident_re = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$")
+        for col in columns:
+            if not ident_re.match(col):
+                msg = "Unsafe column name provided"
+                raise ValueError(msg)
+        return ", ".join(columns)
+
+    def _validated_where(self, where: str | None) -> str | None:
+        """Lightweight guard against obvious SQL injection in WHERE clauses."""
+        if not where:
+            return None
+
+        disallowed = [";", "--", "/*", "*/"]
+        if any(token in where for token in disallowed):
+            msg = "Unsafe characters found in WHERE clause"
+            raise ValueError(msg)
+        return where
+
+    def _build_query(
+        self,
+        table_name: str,
+        columns: list[str] | None,
+        where: str | None,
+    ) -> str:
+        """Construct a SELECT statement using SQLAlchemy for safer quoting."""
+        where = self._validated_where(where)
+        select_clause = self._select_clause(columns)
+
+        metadata = MetaData()
+        tbl = Table(table_name, metadata)
+        cols: list[Any] = (
+            [literal_column("*")]
+            if select_clause == "*"
+            else [literal_column(col) for col in select_clause.split(", ")]
+        )
+
+        stmt = select(*cols).select_from(tbl)
+        if where:
+            stmt = stmt.where(text(where))
+        return stmt.compile(compile_kwargs={"literal_binds": True}).string
 
     def _infer_base_uri(self) -> str | None:  # noqa: PLR0911
         """Infer a base URI from the connection configuration.
